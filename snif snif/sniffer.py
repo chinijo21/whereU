@@ -13,7 +13,7 @@ def init():
 
     #def HOST IP and construct socket object w neccesary params
     snifit = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket_protocol)
-    snifit.bind(HOST, 0)
+    snifit.bind((HOST, 0))
     
     #socket that includes IP Heads of captured packages
     snifit.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
