@@ -6,6 +6,7 @@ import ipaddress
 
 #host to listen
 HOST = '192.168.1.106'
+#'192.168.1.106'//1.47
 
 #1 maps the first 20bytes into a readable buffer
 class IP:
@@ -39,8 +40,20 @@ class IP:
         except Exception as e:
             print('%s No protocol for %s' % (e, self.proto_num))
             self.protocol = str(self.proto_num) 
-               
+
+class ICMP:
+    def __init__(self, buff):
+        header = struct.unpack('<BBHHH', buff)
+        self.type = header[0]
+        self.code = header[1]
+        self.checksum = header[2]
+        self.id = header[3]
+        #ICMP msgs sends the head ot the IP head where it comes from, so it must be the same!
+        self.head = header[4]        
+    
+                   
 def snifit():
+    COUNT = 0
     #bin to public interface and check for windows
     if os.name == 'nt':
         socket_protocol = socket.IPPROTO_IP
@@ -61,12 +74,22 @@ def snifit():
     #read a packet till user stops
     try:
         while True:
-            buffer_og = snifit.recvfrom(65565)[0]
+            buffer_ip = snifit.recvfrom(65565)[0]
             #IP header (20bytes)
-            ip_head = IP(buffer_og[0:20])
-            #print a readable mess
-            print('Protocol: %s %s -> %s' % (ip_head.proto,ip_head.who_address,ip_head.to_address))
-            
+            ip_head = IP(buffer_ip[0:20])
+            COUNT += 1
+            print('[%s]Protocol: %s %s -> %s, Version %s - Length: %s - TTL: %s ' % (COUNT, ip_head.proto,ip_head.who_address,ip_head.to_address, ip_head.ver, ip_head.len, ip_head.ttl))             
+            if ip_head.proto == 'ICMP':
+                #where does the imp starts
+                offset = ip_head.ihl * 4
+                buff_icmp = buffer_ip[offset:offset + 8]
+                
+                #ICMP structure
+                icmp_head = ICMP(buff_icmp)
+                
+                #Data from ICMP head by console
+                print('-----ICMP data from [%s] -> Type: %s Code: %s' % (COUNT, icmp_head.type, icmp_head.code))
+
     except KeyboardInterrupt:
         #WIndows? turn off prom mode
         if os.name == 'nt':
